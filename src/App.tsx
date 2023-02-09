@@ -1,7 +1,10 @@
+import React from "react";
+import SlidePanel from "./SlidePanel";
+
 export default function App() {
   return (
-    <h1 className="bg-red-400 text-3xl font-bold underline">
-      Hello world!
-    </h1>
-  )
+    <div className="h-[100vh] w-[100vw] bg-black">
+      <SlidePanel />
+    </div>
+  );
 }
