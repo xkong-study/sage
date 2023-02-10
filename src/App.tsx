@@ -1,5 +1,5 @@
 import React from "react";
-import SlidePanel from "./SlidePanel";
+import SlidePanel from "./components/SlidePanel";
 
 export default function App() {
   return (
