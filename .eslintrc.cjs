@@ -8,6 +8,9 @@ module.exports = {
         "plugin:react/recommended",
         "plugin:@typescript-eslint/recommended"
     ],
+    "globals": {
+        "module": true
+    },
     "overrides": [
     ],
     "parser": "@typescript-eslint/parser",
