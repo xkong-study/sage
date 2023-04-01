@@ -1,7 +1,7 @@
 import React from "react";
 import { MapPinIcon, MapIcon } from "@heroicons/react/24/outline";
 import { HeartIcon } from "@heroicons/react/24/solid";
-import { classNames } from "../utils/utils";
+import { classNames } from "../utils";
 
 interface FavouriteLocationProps {
   name: string;
