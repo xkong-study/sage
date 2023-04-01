@@ -1,10 +1,18 @@
-#root {
+/* #root {
   margin: 0 auto;
   padding: 0rem;
   text-align: center;
-  width:100%;
-  max-height: 100%;
-  overflow-x:hidden;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+} */
+
+#root {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
 }
 
 .logo {

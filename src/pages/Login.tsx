@@ -1,26 +1,81 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Form, Input, NumberKeyboard, PasscodeInput } from "antd-mobile";
+import { LockClosedIcon } from "@heroicons/react/20/solid";
 import Logo from "../components/Logo";
+
+import { ZodError, ZodIssue, z } from "zod";
+
+const LoginSchema = z.object({
+  email: z
+    .string({
+      required_error: "email is required",
+      invalid_type_error: "email must be a valid",
+    })
+    .email(),
+  password: z
+    .string({
+      required_error: "password is required",
+      invalid_type_error: "password must be greater than 6 and less than 20",
+    })
+    .min(6)
+    .max(20),
+});
+
+type LoginFormData = z.infer<typeof LoginSchema>;
 
 export default function Login() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", password: "" });
+  const [loginForm, setLoginForm] = useState<LoginFormData>({
+    email: "",
+    password: "",
+  });
 
-  const handleChange = useCallback(
-    (val: any, name: any) => {
-      setForm((preVal) => ({ ...preVal, [name]: val }));
-      console.log(form);
-    },
-    [form]
-  );
+  const [loginFormError, setLoginFormError] = useState<LoginFormData>({
+    email: "",
+    password: "",
+  });
 
+  // const handleChange = useCallback(
+  //   (val: any, name: any) => {
+  //     setLoginForm((preVal) => ({ ...preVal, [name]: val }));
+  //     console.log(loginForm);
+  //   },
+  //   [loginForm]
+  // );
+
+  const handleFormChange =
+    (prop: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+      setLoginForm({ ...loginForm, [prop]: event.target.value });
+    };
+
+  //validate the form data using LoginSchema
+  useEffect(() => {
+    if (loginForm.email === "" || loginForm.password === "") {
+      return;
+    }
+
+    try {
+      LoginSchema.parse(loginForm);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const err = new ZodError<LoginFormData>(error.issues);
+        const errors = err.flatten().fieldErrors;
+        setLoginFormError({
+          email: errors.email?.[0] ?? "",
+          password: errors.password?.[0] ?? "",
+        });
+      }
+    }
+  }, [loginForm]);
+
+  // @xkong-study can you please add types to these functions?
   const setCookie = (name: any, value: any, expiryDate: any) => {
     const currentDate = new Date();
     currentDate.setDate(currentDate.getDate() + expiryDate);
     document.cookie = name + "=" + value + "; expires=" + currentDate;
   };
 
+  // @xkong-study can you please add types to these functions?
   const getCookie = (name: any) => {
     const arr = document.cookie.split("; ");
     for (let i = 0; i < arr.length; i++) {
@@ -32,55 +87,61 @@ export default function Login() {
     return "";
   };
 
-  const submit = () => {
-    if (form.password !== "" && form.name !== "") {
-      setCookie("username", form.name, 1);
-      setCookie("password", form.password, 1);
-      console.log(form.name, form.password);
-      navigate("../home");
-    } else {
-      alert("userName and password cannot be none");
-    }
-  };
+  // no validation ?
+  // const submit = () => {
+  //   if (loginForm.password !== "" && loginForm.name !== "") {
+  //     setCookie("username", loginForm.name, 1);
+  //     setCookie("password", loginForm.password, 1);
+  //     console.log(loginForm.name, loginForm.password);
+  //     navigate("../home");
+  //   } else {
+  //     alert("userName and password cannot be none");
+  //   }
+  // };
   return (
-    <div className="flex min-h-full items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
+    <div className="flex h-full items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
         <div>
           <div className="w-full h-40 flex justify-center items-center overflow-clip">
             <Logo className="h-72 w-72 translate-y-8" />
           </div>
           <h1 className="text-center text-5xl font-bold text-gray-900">SAGE</h1>
         </div>
-        <form className="mt-8 space-y-6" method="POST">
-          <input type="hidden" name="remember" value="true" />
+        <form className="mt-20 space-y-6" action="#" method="POST">
+          <input type="hidden" name="remember" defaultValue="true" />
           <div className="-space-y-px rounded-md shadow-sm">
-            <Form.Item
-              name="name"
-              label="username"
-              rules={[{ required: true }]}
-              style={{ height: "10vh" }}
-            >
-              <Input
-                style={{ fontSize: "16px" }}
-                placeholder="please input your name"
-                value={form.name}
-                onChange={(val) => handleChange(val, "name")}
+            <div>
+              <label htmlFor="email-address" className="sr-only">
+                Email address
+              </label>
+              <input
+                id="email-address"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
+                placeholder="Email address"
+                value={loginForm.email}
+                onChange={handleFormChange("email")}
               />
-            </Form.Item>
-            <Form.Item
-              name="address"
-              label="password"
-              rules={[{ required: true }]}
-              style={{ height: "50%" }}
-            >
-              <PasscodeInput
-                keyboard={<NumberKeyboard />}
-                value={form.password}
-                onChange={(val) =>
-                  val.length == 6 && handleChange(val, "password")
-                }
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="relative block w-full rounded-b-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
+                placeholder="Password"
+                value={loginForm.password}
+                onChange={handleFormChange("password")}
               />
-            </Form.Item>
+            </div>
           </div>
 
           <div className="flex items-center justify-between">
@@ -101,10 +162,10 @@ export default function Login() {
 
             <div className="text-sm">
               <a
-                href="../register"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
+                href="#"
+                className="font-medium text-gray-500 hover:text-black"
               >
-                Do not have an account?
+                Forgot your password?
               </a>
             </div>
           </div>
@@ -112,22 +173,13 @@ export default function Login() {
           <div>
             <button
               type="submit"
-              onClick={submit}
-              className="group relative flex w-full justify-center rounded-md bg-indigo-600 py-2 px-3 text-sm font-semibold text-white hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              className="group relative flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
               <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <svg
-                  className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
+                <LockClosedIcon
+                  className="h-5 w-5 text-gray-400 group-hover:text-white"
                   aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                />
               </span>
               Sign in
             </button>

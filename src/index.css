@@ -2,8 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 #root {
-    margin: 0 auto;
-    padding: 0rem;
-    width:100%;
-    overflow-x:hidden;
+  margin: 0 auto;
+  padding: 0rem;
+  width: 100%;
+  overflow-x: hidden;
+  height: inherit;
 }
