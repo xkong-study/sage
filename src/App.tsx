@@ -14,17 +14,17 @@ export default function App() {
   return (
     <Provider store={store}>
       <Router>
-        <ScrollToTop />
+        {/* <ScrollToTop /> */}
         <Routes>
-          <Route
+          {/* <Route
             path="/home"
-            element={document.cookie ? <MyCombobox /> : <Login />}
-          />
+            element={<Login />}
+          /> */}
           <Route path="/Page2" element={<Page2 />} />
           <Route path="/Page3" element={<Page3 />} />
           <Route path="/Page4" element={<Page4 />} />
-          <Route index path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          {/* <Route index path="/" element={<Login />} />
+          <Route path="/register" element={<Register />} /> */}
         </Routes>
       </Router>
     </Provider>

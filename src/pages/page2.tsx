@@ -1,13 +1,17 @@
-import React, { useState, useRef } from "react";
-import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
+import React, { useState, useRef, useCallback } from "react";
 import { SparklesIcon } from "@heroicons/react/24/solid";
 import { useSwipeable } from "react-swipeable";
 import { classNames } from "../utils";
 import ListContainer from "../components/ListContainer";
 import { FavouriteLocation } from "../components/FavouriteLocation";
 import Divider from "../components/Divider";
-import { ChevronLeftIcon } from "@heroicons/react/20/solid";
+import {
+  ChevronLeftIcon,
+  ArrowUturnRightIcon,
+} from "@heroicons/react/20/solid";
 import { useNavigate } from "react-router-dom";
+import { Map } from "react-map-gl";
+import BackButton from "../atoms/BackButton";
 
 enum SlidePanelState {
   Open,
@@ -24,13 +28,8 @@ const slidePanelStateToTranslate = (state: SlidePanelState) => {
 };
 
 export default function Page2() {
-  const { isLoaded } = useJsApiLoader({
-    id: "d07532df77f9d9a5",
-    googleMapsApiKey: "AIzaSyBxhljI-42-8Sn2UOAVf3Cw_9lH4otQ6vY",
-    libraries: ["geometry", "drawing"],
-  });
   const navigate = useNavigate();
-  const [slidePanelState, setSlidePanelState] = useState(
+  const [slidePanelState, setSlidePanelState] = useState<SlidePanelState>(
     SlidePanelState.Midway
   );
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -48,33 +47,30 @@ export default function Page2() {
     handlers.ref(el);
     panelRef.current = el;
   };
-  const containerStyle = {
-    width: screen.width,
-    height: screen.height,
-  };
+
   const center = {
-    lat: 53.49332,
-    lng: -6.31718,
+    latitude: 53.3440369,
+    longitude: -6.2567066,
   };
-  const options = {
-    // 将 `language` 属性添加到 `options` 对象中
-    ...{
-      zoomControl: true,
-      streetViewControl: false,
+
+  const navigateToPage = useCallback(
+    (page: string) => () => {
+      navigate(page);
     },
-    language: "en-GB", // 设置地图的语言为中文
-  };
+    [navigate]
+  );
 
   return (
     <div className="relative h-[100vh] w-full overflow-hidden">
-      {isLoaded && (
-        <GoogleMap
-          mapContainerStyle={containerStyle}
-          center={center}
-          zoom={10}
-          options={options}
-        ></GoogleMap>
-      )}
+      <Map
+        initialViewState={{
+          ...center,
+          zoom: 15,
+        }}
+        style={{ width: "100vw", height: "100vh" }}
+        mapStyle="mapbox://styles/mapbox/streets-v9"
+        mapboxAccessToken="pk.eyJ1IjoiYXJvcmFydSIsImEiOiJjbGc3cTdzM28wN3BlM2RydjJzY2RkdGRpIn0.M7M0wt-FhOcmwoxM7yVZ-Q"
+      />
       <div
         {...handlers}
         className={classNames(
@@ -85,19 +81,25 @@ export default function Page2() {
         ref={refPassthrough}
         id="dropbox"
       >
+        <button
+          onClick={navigateToPage("/Page4")}
+          className="absolute -top-16 right-2 bg-blue-500 p-3 rounded-lg"
+        >
+          <div className="bg-white h-8 w-8 rotate-45 p-1 rounded-md">
+            <ArrowUturnRightIcon className="w-6 h-6 -rotate-45 text-blue-500" />
+          </div>
+        </button>
         <div className="w-6 h-2 bg-gray-500 rounded mx-auto my-2"></div>
         <div className="px-4">
           <div className="w-full space-y-1">
-            <div className="flex flex-col">
-              <ChevronLeftIcon
-                className="h-10 w-8"
-                aria-hidden="true"
-                onClick={() => navigate(-1)}
-              />
-              <span className="inline-flex space-x-2 items-baseline my-2">
-                <h4 className="text-black text-left text-xl">Favourites</h4>
-                <span className="p-[0.8px] rounded-full ring-2 ring-amber-300 ">
-                  <SparklesIcon className="h-4 w-4 text-amber-500" />
+            <div className="flex flex-col items-end">
+              <span className="w-full inline-flex items-center justify-between">
+                <BackButton />
+                <span className="inline-flex space-x-2 items-baseline my-2">
+                  <h4 className="text-black text-left text-xl">Favourites</h4>
+                  <span className="p-[0.8px] rounded-full ring-2 ring-amber-300 ">
+                    <SparklesIcon className="h-4 w-4 text-amber-500" />
+                  </span>
                 </span>
               </span>
               <span className="text-sm text-gray-400 -translate-y-2">
