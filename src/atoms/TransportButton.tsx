@@ -1,26 +1,33 @@
-import React, { useCallback } from "react";
-import useResizeObserver from "../hooks";
+import React, { useCallback, useEffect } from "react";
+import { useResizeObserver } from "../hooks";
 
 interface TransportButtonProps {
   Icon: React.ReactNode;
   onClick: () => void;
   className?: string;
   handleBadgePosition: (position: DOMRect) => void;
+  transitButtonRef?: React.MutableRefObject<HTMLButtonElement | null>;
 }
 
-function TransportButton({
+const TransportButton = ({
   Icon,
   className,
   onClick,
   handleBadgePosition,
-}: TransportButtonProps) {
+  transitButtonRef,
+}: TransportButtonProps) => {
   const onResize = useCallback((target: HTMLButtonElement) => {
-    const position = target.getBoundingClientRect();
-    handleBadgePosition(position);
+    // const position = target.getBoundingClientRect();
+    // handleBadgePosition(position);
   }, []);
 
   const buttonRef = useResizeObserver(onResize);
 
+  useEffect(() => {
+    if (buttonRef.current && transitButtonRef?.current === null) {
+      transitButtonRef.current = buttonRef.current;
+    }
+  }, [transitButtonRef?.current, buttonRef.current]);
   const handleSelection = () => {
     onClick();
     const currentPos = buttonRef.current?.getBoundingClientRect();
@@ -32,6 +39,6 @@ function TransportButton({
       {Icon}
     </button>
   );
-}
+};
 
 export default TransportButton;

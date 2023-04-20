@@ -15,9 +15,9 @@ function Logo({ className }: LogoProps) {
       preserveAspectRatio="xMidYMid meet"
     >
       <g
+        className="fill-current"
         transform="translate(0.000000,1200.000000) scale(0.100000,-0.100000)"
-        fill="#000"
-        stroke="black"
+        stroke="none"
       >
         <path
           d="M5672 9725 c-41 -7 -75 -15 -77 -17 -3 -3 312 -468 327 -483 3 -3 58

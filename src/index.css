@@ -1,10 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 #root {
   margin: 0 auto;
   padding: 0rem;
   width: 100%;
   overflow-x: hidden;
   height: inherit;
+}
+
+.mapboxgl-ctrl-logo {
+  display: none !important;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
 }
