@@ -29,7 +29,6 @@ export default function FavouriteLocation({
           <p className="text-xs">Start</p>
           <MapPinIcon className="h-5 w-5 rounded-full text-blue-700" />
         </span>
-        <></>
         <span className="inline-flex space-x-2">
           <MapIcon className="h-6 w-6 p-1 bg-white ring-2 ring-emerald-500 rounded-full text-emerald-500" />
           <HeartIcon className="h-6 w-6 p-1 bg-white ring-2 ring-pink-500 rounded-full text-pink-500" />
