@@ -11,6 +11,7 @@ import {
   pointToLineDistance,
   point,
 } from "@turf/turf";
+
 import {
   ChevronLeftIcon,
   ArrowUturnRightIcon,
@@ -29,8 +30,8 @@ import {
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 
 import { useViewNavigate } from "../hooks";
-import { useRecoilValue } from "recoil";
-import { navigationDataAtom } from "../recoil/atoms";
+import { useRecoilState, useRecoilValue } from "recoil";
+import { navigationDataAtom, predictionsDataAtom } from "../recoil/atoms";
 import polyline from "@mapbox/polyline";
 import type {
   Feature,
@@ -41,105 +42,11 @@ import type {
   Position,
 } from "geojson";
 import Suggestion from "../components/Suggestion";
-import { LocationSearchResponse, Prediction } from "../types";
-
-const TEST_DATA: any = {
-  predictions: [
-    {
-      description: "Trinity College, College Green, Dublin 2",
-      matched_substrings: [{ length: 7, offset: 0 }],
-      place_id: "ChIJ3Y7HLZsOZ0gRZ2FxjA3-ACc",
-      reference: "ChIJ3Y7HLZsOZ0gRZ2FxjA3-ACc",
-      structured_formatting: {
-        main_text: "Trinity College",
-        main_text_matched_substrings: [{ length: 7, offset: 0 }],
-        secondary_text: "College Green, Dublin 2",
-      },
-      terms: [
-        { offset: 0, value: "Trinity College" },
-        { offset: 17, value: "College Green" },
-        { offset: 32, value: "Dublin 2" },
-      ],
-      types: [
-        "tourist_attraction",
-        "university",
-        "point_of_interest",
-        "establishment",
-      ],
-    },
-    {
-      description:
-        "Trinity College Library, College Green, South-East Inner City, Dublin 2",
-      matched_substrings: [{ length: 7, offset: 0 }],
-      place_id: "ChIJVdIER5sOZ0gRbNBq2VcIW9Q",
-      reference: "ChIJVdIER5sOZ0gRbNBq2VcIW9Q",
-      structured_formatting: {
-        main_text: "Trinity College Library",
-        main_text_matched_substrings: [{ length: 7, offset: 0 }],
-        secondary_text: "College Green, South-East Inner City, Dublin 2",
-      },
-      terms: [
-        { offset: 0, value: "Trinity College Library" },
-        { offset: 25, value: "College Green" },
-        { offset: 40, value: "South-East Inner City" },
-        { offset: 63, value: "Dublin 2" },
-      ],
-      types: ["library", "point_of_interest", "establishment"],
-    },
-    {
-      description: "Trinity Hall, Dartry Road, Dartry, Dublin 6",
-      matched_substrings: [{ length: 7, offset: 0 }],
-      place_id: "ChIJg_re5P8LZ0gRpm7PRFteXog",
-      reference: "ChIJg_re5P8LZ0gRpm7PRFteXog",
-      structured_formatting: {
-        main_text: "Trinity Hall",
-        main_text_matched_substrings: [{ length: 7, offset: 0 }],
-        secondary_text: "Dartry Road, Dartry, Dublin 6",
-      },
-      terms: [
-        { offset: 0, value: "Trinity Hall" },
-        { offset: 14, value: "Dartry Road" },
-        { offset: 27, value: "Dartry" },
-        { offset: 35, value: "Dublin 6" },
-      ],
-      types: ["point_of_interest", "establishment"],
-    },
-    {
-      description: "Trinity College Sports Centre, Pearse Street, Dublin 2",
-      matched_substrings: [{ length: 7, offset: 0 }],
-      place_id: "ChIJiXbRr5EOZ0gRwAvWG0ZddPc",
-      reference: "ChIJiXbRr5EOZ0gRwAvWG0ZddPc",
-      structured_formatting: {
-        main_text: "Trinity College Sports Centre",
-        main_text_matched_substrings: [{ length: 7, offset: 0 }],
-        secondary_text: "Pearse Street, Dublin 2",
-      },
-      terms: [
-        { offset: 0, value: "Trinity College Sports Centre" },
-        { offset: 31, value: "Pearse Street" },
-        { offset: 46, value: "Dublin 2" },
-      ],
-      types: ["gym", "point_of_interest", "health", "establishment"],
-    },
-    {
-      description: "Trinity Business School, Pearse Street, Dublin 2",
-      matched_substrings: [{ length: 7, offset: 0 }],
-      place_id: "ChIJ60tDQZAOZ0gRvJ_MbtfzNxs",
-      reference: "ChIJ60tDQZAOZ0gRvJ_MbtfzNxs",
-      structured_formatting: {
-        main_text: "Trinity Business School",
-        main_text_matched_substrings: [{ length: 7, offset: 0 }],
-        secondary_text: "Pearse Street, Dublin 2",
-      },
-      terms: [
-        { offset: 0, value: "Trinity Business School" },
-        { offset: 25, value: "Pearse Street" },
-        { offset: 40, value: "Dublin 2" },
-      ],
-      types: ["university", "university", "point_of_interest", "establishment"],
-    },
-  ],
-};
+import {
+  DirectionsResponse,
+  LocationSearchResponse,
+  Prediction,
+} from "../types";
 
 enum SlidePanelState {
   Open,
@@ -155,12 +62,12 @@ const slidePanelStateToTranslate = (state: SlidePanelState) => {
   }
 };
 
-const layerStyle = {
-  id: "point",
+const stopLayerStyle = {
+  id: "bus-stops",
   type: "circle",
   paint: {
-    "circle-radius": 10,
-    "circle-color": "#007cbf",
+    "circle-radius": 5,
+    "circle-color": "#ca8a04",
   },
 };
 
@@ -180,7 +87,7 @@ const routeLayerStyle = {
   type: "line",
   paint: {
     "line-width": 5,
-    "line-color": "#007cbf",
+    "line-color": ["get", "color"],
   },
 };
 // route layer style
@@ -188,7 +95,7 @@ const accidentPreventionLayerStyle = {
   id: "accident",
   type: "line",
   paint: {
-    "line-width": 20,
+    "line-width": 10,
     "line-color": "red",
   },
 };
@@ -208,7 +115,7 @@ export default function Navigation() {
   const [routeFeatures, setRouteFeatures] = useState<FeatureCollection>();
   const [busStopsLayerData, setBusStopsLayerData] = useState<any>(null);
 
-  let [predictions, setPredictions] = useState<any[]>(TEST_DATA.predictions);
+  const predictions = useRecoilValue<Prediction[]>(predictionsDataAtom);
 
   const [accidentPreventionLayerData, setAccidentPreventionLayerData] =
     useState<FeatureCollection>({
@@ -227,7 +134,6 @@ export default function Navigation() {
         accidentsPolygons
       );
 
-      let features: any[] = [];
       let avoidLines = intersections.map(([[fromPoint, toPoint], polygon]) => {
         // return getSmallestPolyLineAlongPolygon({
         //   from_point: fromPoint,
@@ -235,6 +141,47 @@ export default function Navigation() {
         //   polygon,
         // });
         return [fromPoint, toPoint];
+      });
+
+      // loop over avoid lines and send a request to the backend
+      Promise.all(
+        avoidLines.map(async ([fromPoint, toPoint]) => {
+          let req = await fetch("http://127.0.0.1:8080/shortest_route", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from_point: fromPoint,
+              to_point: toPoint,
+            }),
+          });
+          let data = await req.json();
+          return data;
+        })
+      ).then((data) => {
+        // the data is a DirectionsResponse
+        let features: Feature[] = [];
+        data = data.flat();
+        data.forEach((directionResponse: DirectionsResponse) => {
+          let plyline = directionResponse.overview_polyline.points;
+          let decoded = polyline.decode(plyline);
+          // reverse the coordinates
+          decoded = decoded.map(([lat, lng]) => [lng, lat]);
+          let feature: Feature = {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: decoded,
+            },
+          };
+          features.push(feature);
+        });
+        setAccidentPreventionLayerData({
+          type: "FeatureCollection",
+          features,
+        });
       });
 
       // try {
@@ -268,7 +215,7 @@ export default function Navigation() {
       //   console.log(e);
       // }
     }
-  }, [accidentsPolygons, routeFeatures]);
+  }, [accidentsPolygons?.features.length, routeFeatures]);
 
   useEffect(() => {
     if (navigationData) {
@@ -280,7 +227,16 @@ export default function Navigation() {
         if (step.polyline?.points) {
           const routeLine: Feature = {
             type: "Feature",
-            properties: {},
+            properties: {
+              color:
+                step.travel_mode === "WALKING"
+                  ? "#22c55e"
+                  : step.travel_mode === "TRANSIT"
+                  ? "#facc15"
+                  : step.travel_mode === "DRIVING"
+                  ? "#3b82f6"
+                  : "#a3e635",
+            },
             geometry: {
               type: "LineString",
               coordinates: [],
@@ -293,7 +249,9 @@ export default function Navigation() {
         let endLocation = step.end_location;
         let routeStartStop: Feature = {
           type: "Feature",
-          properties: {},
+          properties: {
+            type: "stop",
+          },
           geometry: {
             type: "Point",
             coordinates: [startLocation.lng, startLocation.lat],
@@ -301,7 +259,9 @@ export default function Navigation() {
         };
         let routeEndStop: Feature = {
           type: "Feature",
-          properties: {},
+          properties: {
+            type: "stop",
+          },
           geometry: {
             type: "Point",
             coordinates: [endLocation.lng, endLocation.lat],
@@ -488,7 +448,6 @@ export default function Navigation() {
     map.addControl(draw.current, "top-left");
     map.on("draw.create", (e: any) => {
       const features = draw.current?.getAll();
-      console.log(features);
       setAccidentsPolygons(features as FeatureCollection<Polygon>);
     });
   }, []);
@@ -543,7 +502,7 @@ export default function Navigation() {
         />
         {!!busStopsLayerData && (
           <Source id="bus-stops" type="geojson" data={busStopsLayerData}>
-            <Layer {...(layerStyle as any)} />
+            <Layer {...(stopLayerStyle as any)} />
           </Source>
         )}
         {routeFeatures && (
@@ -626,7 +585,8 @@ export default function Navigation() {
                   <Suggestion
                     mainText={item.structured_formatting.main_text}
                     subText={item.structured_formatting.secondary_text}
-                    handleGoToPrediction={() => void 0}
+                    handleGoToPrediction={() => viewNavigate("/directions")}
+                    data={item}
                   />
                 </li>
               ))}

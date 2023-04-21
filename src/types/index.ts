@@ -50,6 +50,7 @@ export interface Prediction {
   };
   terms: { offset: number; value: string }[];
   types?: string[];
+  heart?: boolean;
 }
 
 export interface LocationSearchResponse {

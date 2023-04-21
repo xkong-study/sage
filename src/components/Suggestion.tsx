@@ -7,20 +7,27 @@ import {
 } from "@heroicons/react/24/outline";
 import { classNames } from "../utils";
 import { BsArrowRightCircle } from "react-icons/bs";
+import { useSetRecoilState } from "recoil";
+import { predictionsDataAtom } from "../recoil/atoms";
+import { Prediction } from "../types";
 
 interface SuggestionProps {
   mainText: string;
   subText?: string;
   handleGoToPrediction: () => void;
+  data: Prediction;
 }
 
 function Suggestion({
   mainText,
   subText,
   handleGoToPrediction,
+  data,
 }: SuggestionProps) {
-  const [heart, setHeart] = React.useState(false);
+  const setPredictions = useSetRecoilState(predictionsDataAtom);
+
   const heartRef = useRef<SVGSVGElement>(null);
+  const [heart, setHeart] = React.useState(!!data.heart);
 
   const heartAnimation = () => {
     if (!heartRef.current) {
@@ -48,6 +55,29 @@ function Suggestion({
   React.useEffect(() => {
     if (heart) {
       heartAnimation();
+      setPredictions((old) => {
+        return old.map((item) => {
+          if (item.place_id === data.place_id) {
+            return {
+              ...item,
+              heart: true,
+            };
+          }
+          return item;
+        });
+      });
+    } else {
+      setPredictions((old) => {
+        return old.map((item) => {
+          if (item.place_id === data.place_id) {
+            return {
+              ...item,
+              heart: false,
+            };
+          }
+          return item;
+        });
+      });
     }
   }, [heart]);
 

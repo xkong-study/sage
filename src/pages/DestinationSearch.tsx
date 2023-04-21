@@ -12,8 +12,8 @@ import {
   PredictionStatus,
 } from "../types";
 
-import { useSetRecoilState } from "recoil";
-import { destinationSearchAtom } from "../recoil/atoms";
+import { useRecoilState, useSetRecoilState } from "recoil";
+import { destinationSearchAtom, predictionsDataAtom } from "../recoil/atoms";
 import { DestinationSearchStateKeys } from "../types";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { useParams } from "react-router-dom";
@@ -156,9 +156,7 @@ function DestinationSearch() {
   });
   const [isPending, startTransition] = useTransition();
 
-  const [predictions, setPredictions] = useState<Array<Prediction>>(
-    TEST_DATA.predictions
-  );
+  const [predictions, setPredictions] = useRecoilState(predictionsDataAtom);
 
   const sendMessageWhenSearchChanges = (searchText: string) => {
     sendJsonMessage({
@@ -226,6 +224,7 @@ function Predictions({
   handlePredictionClicked,
 }: {
   predictions: Array<Prediction>;
+
   handlePredictionClicked: (prediction: Prediction) => void;
 }) {
   return (
@@ -239,6 +238,7 @@ function Predictions({
             mainText={item.structured_formatting.main_text}
             subText={item.structured_formatting.secondary_text}
             handleGoToPrediction={() => handlePredictionClicked(item)}
+            data={item}
           />
         </li>
       ))}

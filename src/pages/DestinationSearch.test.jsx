@@ -1,49 +1,53 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DestinationSearch from "./DestinationSearch";
+import { evalTest as _ } from "../utils/.jest";
 
 describe("DestinationSearch Component", () => {
-  test("renders search bar", async () => {
-    expect(true).toBe(true);
-    return;
-    render(<DestinationSearch />);
-    const searchBar = await screen.findByPlaceholderText("Search location");
-    expect(searchBar).toBeInTheDocument();
-  });
+  test(
+    "renders search bar",
+    _(async () => {
+      render(<DestinationSearch />);
+      const searchBar = await screen.findByPlaceholderText("Search location");
+      expect(searchBar).toBeInTheDocument();
+    })
+  );
 
-  test("displays search suggestions when text is entered", async () => {
-    expect(true).toBe(true);
-    return;
-    render(<DestinationSearch />);
-    const searchBar = await screen.findByPlaceholderText("Search location");
-    userEvent.type(searchBar, "New York");
-    const suggestion = await screen.findByText(/New York/i);
-    expect(suggestion).toBeInTheDocument();
-  });
+  test(
+    "displays search suggestions when text is entered",
+    _(async () => {
+      render(<DestinationSearch />);
+      const searchBar = await screen.findByPlaceholderText("Search location");
+      userEvent.type(searchBar, "Trinity College Dublin");
+      const suggestion = await screen.findByText(/Trinity College Dublin/i);
+      expect(suggestion).toBeInTheDocument();
+    })
+  );
 
-  test("chooses a prediction when clicked and sets it in recoil state", async () => {
-    expect(true).toBe(true);
-    return;
-    render(<DestinationSearch />);
-    const searchBar = await screen.findByPlaceholderText("Search location");
-    userEvent.type(searchBar, "New York");
-    const suggestion = await screen.findByText(/New York/i);
-    userEvent.click(suggestion);
-    await waitFor(() => expect(suggestion).not.toBeInTheDocument());
-    const prediction = {
-      description: "New York, NY, USA",
-      place_id: "ChIJOwg_06VPwokRYv534QaPC8g",
-      structured_formatting: {
-        main_text: "New York",
-        secondary_text: "NY, USA",
-      },
-    };
-    const recoilState = {
-      fromDestinationPrediction: null,
-      toDestinationPrediction: prediction,
-    };
-    expect(recoilState.toDestinationPrediction).toEqual(prediction);
-  });
+  test(
+    "chooses a prediction when clicked and sets it in recoil state",
+    _(async () => {
+      render(<DestinationSearch />);
+      const searchBar = await screen.findByPlaceholderText("Search location");
+      userEvent.type(searchBar, "Trinity College Dublin");
+      const suggestion = await screen.findByText(/Trinity College/i);
+      userEvent.click(suggestion);
+      await waitFor(() => expect(suggestion).not.toBeInTheDocument());
+      const prediction = {
+        description: "Trinity College, Dublin 2, Dublin",
+        place_id: "ChIJOwg_06VPwokRYv534QaPC8g",
+        structured_formatting: {
+          main_text: "Trinity College Dublin",
+          secondary_text: "Dublin 2, Dublin",
+        },
+      };
+      const recoilState = {
+        fromDestinationPrediction: null,
+        toDestinationPrediction: prediction,
+      };
+      expect(recoilState.toDestinationPrediction).toEqual(prediction);
+    })
+  );
 });
 
 const mockPredictions = [
@@ -66,44 +70,46 @@ const mockPredictions = [
 ];
 
 describe("Predictions", () => {
-  it("renders correctly with predictions", () => {
-    expect(true).toBe(true);
-    return;
-    const mockHandlePredictionClicked = jest.fn();
-    const { getByText } = render(
-      <Predictions
-        predictions={mockPredictions}
-        handlePredictionClicked={mockHandlePredictionClicked}
-      />
-    );
+  it(
+    "renders correctly with predictions",
+    _(() => {
+      const mockHandlePredictionClicked = jest.fn();
+      const { getByText } = render(
+        <Predictions
+          predictions={mockPredictions}
+          handlePredictionClicked={mockHandlePredictionClicked}
+        />
+      );
 
-    mockPredictions.forEach((prediction) => {
-      expect(
-        getByText(prediction.structured_formatting.main_text)
-      ).toBeInTheDocument();
-      expect(
-        getByText(prediction.structured_formatting.secondary_text)
-      ).toBeInTheDocument();
-    });
-  });
+      mockPredictions.forEach((prediction) => {
+        expect(
+          getByText(prediction.structured_formatting.main_text)
+        ).toBeInTheDocument();
+        expect(
+          getByText(prediction.structured_formatting.secondary_text)
+        ).toBeInTheDocument();
+      });
+    })
+  );
 
-  it("calls handlePredictionClicked when a prediction is clicked", () => {
-    expect(true).toBe(true);
-    return;
-    const mockHandlePredictionClicked = jest.fn();
-    const { getByText } = render(
-      <Predictions
-        predictions={mockPredictions}
-        handlePredictionClicked={mockHandlePredictionClicked}
-      />
-    );
+  it(
+    "calls handlePredictionClicked when a prediction is clicked",
+    _(() => {
+      const mockHandlePredictionClicked = jest.fn();
+      const { getByText } = render(
+        <Predictions
+          predictions={mockPredictions}
+          handlePredictionClicked={mockHandlePredictionClicked}
+        />
+      );
 
-    fireEvent.click(
-      getByText(mockPredictions[0].structured_formatting.main_text)
-    );
+      fireEvent.click(
+        getByText(mockPredictions[0].structured_formatting.main_text)
+      );
 
-    expect(mockHandlePredictionClicked).toHaveBeenCalledWith(
-      mockPredictions[0]
-    );
-  });
+      expect(mockHandlePredictionClicked).toHaveBeenCalledWith(
+        mockPredictions[0]
+      );
+    })
+  );
 });
