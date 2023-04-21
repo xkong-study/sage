@@ -10,12 +10,12 @@ interface FavouriteLocationProps {
   className?: string;
 }
 
-export const FavouriteLocation = ({
+export default function FavouriteLocation({
   name,
   time,
   distance,
   className,
-}: FavouriteLocationProps) => {
+}: FavouriteLocationProps) {
   return (
     <div
       className={classNames(
@@ -37,4 +37,4 @@ export const FavouriteLocation = ({
       </div>
     </div>
   );
-};
+}

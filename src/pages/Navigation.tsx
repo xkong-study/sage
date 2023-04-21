@@ -1,10 +1,16 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { SparklesIcon } from "@heroicons/react/24/solid";
 import { useSwipeable } from "react-swipeable";
-import { classNames } from "../utils";
+import { classNames, getStopsNearAccidents } from "../utils";
 import ListContainer from "../components/ListContainer";
-import { FavouriteLocation } from "../components/FavouriteLocation";
+import FavouriteLocation from "../components/FavouriteLocation";
 import Divider from "../components/Divider";
+import {
+  lineIntersect,
+  lineString,
+  pointToLineDistance,
+  point,
+} from "@turf/turf";
 import {
   ChevronLeftIcon,
   ArrowUturnRightIcon,
@@ -22,12 +28,118 @@ import {
 } from "react-map-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 
-import BackButton from "../atoms/BackButton";
 import { useViewNavigate } from "../hooks";
 import { useRecoilValue } from "recoil";
 import { navigationDataAtom } from "../recoil/atoms";
 import polyline from "@mapbox/polyline";
-import type { Feature, FeatureCollection, Point } from "geojson";
+import type {
+  Feature,
+  FeatureCollection,
+  LineString,
+  Point,
+  Polygon,
+  Position,
+} from "geojson";
+import Suggestion from "../components/Suggestion";
+import { LocationSearchResponse, Prediction } from "../types";
+
+const TEST_DATA: any = {
+  predictions: [
+    {
+      description: "Trinity College, College Green, Dublin 2",
+      matched_substrings: [{ length: 7, offset: 0 }],
+      place_id: "ChIJ3Y7HLZsOZ0gRZ2FxjA3-ACc",
+      reference: "ChIJ3Y7HLZsOZ0gRZ2FxjA3-ACc",
+      structured_formatting: {
+        main_text: "Trinity College",
+        main_text_matched_substrings: [{ length: 7, offset: 0 }],
+        secondary_text: "College Green, Dublin 2",
+      },
+      terms: [
+        { offset: 0, value: "Trinity College" },
+        { offset: 17, value: "College Green" },
+        { offset: 32, value: "Dublin 2" },
+      ],
+      types: [
+        "tourist_attraction",
+        "university",
+        "point_of_interest",
+        "establishment",
+      ],
+    },
+    {
+      description:
+        "Trinity College Library, College Green, South-East Inner City, Dublin 2",
+      matched_substrings: [{ length: 7, offset: 0 }],
+      place_id: "ChIJVdIER5sOZ0gRbNBq2VcIW9Q",
+      reference: "ChIJVdIER5sOZ0gRbNBq2VcIW9Q",
+      structured_formatting: {
+        main_text: "Trinity College Library",
+        main_text_matched_substrings: [{ length: 7, offset: 0 }],
+        secondary_text: "College Green, South-East Inner City, Dublin 2",
+      },
+      terms: [
+        { offset: 0, value: "Trinity College Library" },
+        { offset: 25, value: "College Green" },
+        { offset: 40, value: "South-East Inner City" },
+        { offset: 63, value: "Dublin 2" },
+      ],
+      types: ["library", "point_of_interest", "establishment"],
+    },
+    {
+      description: "Trinity Hall, Dartry Road, Dartry, Dublin 6",
+      matched_substrings: [{ length: 7, offset: 0 }],
+      place_id: "ChIJg_re5P8LZ0gRpm7PRFteXog",
+      reference: "ChIJg_re5P8LZ0gRpm7PRFteXog",
+      structured_formatting: {
+        main_text: "Trinity Hall",
+        main_text_matched_substrings: [{ length: 7, offset: 0 }],
+        secondary_text: "Dartry Road, Dartry, Dublin 6",
+      },
+      terms: [
+        { offset: 0, value: "Trinity Hall" },
+        { offset: 14, value: "Dartry Road" },
+        { offset: 27, value: "Dartry" },
+        { offset: 35, value: "Dublin 6" },
+      ],
+      types: ["point_of_interest", "establishment"],
+    },
+    {
+      description: "Trinity College Sports Centre, Pearse Street, Dublin 2",
+      matched_substrings: [{ length: 7, offset: 0 }],
+      place_id: "ChIJiXbRr5EOZ0gRwAvWG0ZddPc",
+      reference: "ChIJiXbRr5EOZ0gRwAvWG0ZddPc",
+      structured_formatting: {
+        main_text: "Trinity College Sports Centre",
+        main_text_matched_substrings: [{ length: 7, offset: 0 }],
+        secondary_text: "Pearse Street, Dublin 2",
+      },
+      terms: [
+        { offset: 0, value: "Trinity College Sports Centre" },
+        { offset: 31, value: "Pearse Street" },
+        { offset: 46, value: "Dublin 2" },
+      ],
+      types: ["gym", "point_of_interest", "health", "establishment"],
+    },
+    {
+      description: "Trinity Business School, Pearse Street, Dublin 2",
+      matched_substrings: [{ length: 7, offset: 0 }],
+      place_id: "ChIJ60tDQZAOZ0gRvJ_MbtfzNxs",
+      reference: "ChIJ60tDQZAOZ0gRvJ_MbtfzNxs",
+      structured_formatting: {
+        main_text: "Trinity Business School",
+        main_text_matched_substrings: [{ length: 7, offset: 0 }],
+        secondary_text: "Pearse Street, Dublin 2",
+      },
+      terms: [
+        { offset: 0, value: "Trinity Business School" },
+        { offset: 25, value: "Pearse Street" },
+        { offset: 40, value: "Dublin 2" },
+      ],
+      types: ["university", "university", "point_of_interest", "establishment"],
+    },
+  ],
+};
 
 enum SlidePanelState {
   Open,
@@ -71,8 +183,17 @@ const routeLayerStyle = {
     "line-color": "#007cbf",
   },
 };
+// route layer style
+const accidentPreventionLayerStyle = {
+  id: "accident",
+  type: "line",
+  paint: {
+    "line-width": 20,
+    "line-color": "red",
+  },
+};
 
-export default function Page2() {
+export default function Navigation() {
   const viewNavigate = useViewNavigate();
   const [slidePanelState, setSlidePanelState] = useState<SlidePanelState>(
     SlidePanelState.Midway
@@ -84,9 +205,70 @@ export default function Page2() {
     null
   );
   const navigationData = useRecoilValue(navigationDataAtom);
-  const [routeFeatures, setRouteFeatures] =
-    useState<FeatureCollection | null>();
+  const [routeFeatures, setRouteFeatures] = useState<FeatureCollection>();
   const [busStopsLayerData, setBusStopsLayerData] = useState<any>(null);
+
+  let [predictions, setPredictions] = useState<any[]>(TEST_DATA.predictions);
+
+  const [accidentPreventionLayerData, setAccidentPreventionLayerData] =
+    useState<FeatureCollection>({
+      type: "FeatureCollection",
+      features: [],
+    });
+
+  const [accidentsPolygons, setAccidentsPolygons] = useState<
+    FeatureCollection<Polygon> | undefined
+  >(undefined);
+
+  useEffect(() => {
+    if (routeFeatures && accidentsPolygons) {
+      const intersections = getStopsNearAccidents(
+        routeFeatures,
+        accidentsPolygons
+      );
+
+      let features: any[] = [];
+      let avoidLines = intersections.map(([[fromPoint, toPoint], polygon]) => {
+        // return getSmallestPolyLineAlongPolygon({
+        //   from_point: fromPoint,
+        //   to_point: toPoint,
+        //   polygon,
+        // });
+        return [fromPoint, toPoint];
+      });
+
+      // try {
+      //   console.log({
+      //     from_point: fromPoint,
+      //     to_point: toPoint,
+      //     feature_collection: accidentsPolygons,
+      //   });
+      //   let req = await fetch("http://127.0.0.1:8000/api/shortest_path/", {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       from_point: fromPoint,
+      //       to_point: toPoint,
+      //       feature_collection: accidentsPolygons,
+      //     }),
+      //   });
+      //   let data = await req.json();
+      //   let feature: Feature = {
+      //     type: "Feature",
+      //     properties: {},
+      //     geometry: {
+      //       type: "LineString",
+      //       coordinates: data["coordinates"],
+      //     },
+      //   };
+      //   features.push(feature);
+      // } catch (e) {
+      //   console.log(e);
+      // }
+    }
+  }, [accidentsPolygons, routeFeatures]);
 
   useEffect(() => {
     if (navigationData) {
@@ -173,6 +355,7 @@ export default function Page2() {
     panelRef.current = el;
   };
 
+  // dublin's center
   const center = {
     latitude: 53.3440369,
     longitude: -6.2567066,
@@ -304,7 +487,9 @@ export default function Page2() {
 
     map.addControl(draw.current, "top-left");
     map.on("draw.create", (e: any) => {
-      console.log(draw.current?.getAll());
+      const features = draw.current?.getAll();
+      console.log(features);
+      setAccidentsPolygons(features as FeatureCollection<Polygon>);
     });
   }, []);
 
@@ -315,6 +500,7 @@ export default function Page2() {
   return (
     <div className="relative h-[100vh] w-full overflow-hidden">
       <Map
+        data-testid="map"
         initialViewState={{
           ...center,
           zoom: 12,
@@ -355,17 +541,27 @@ export default function Page2() {
           showCompass={true}
           visualizePitch={true}
         />
-        {/* {!!busStopsLayerData && (
+        {!!busStopsLayerData && (
           <Source id="bus-stops" type="geojson" data={busStopsLayerData}>
-            <Layer {...layerStyle} />
-          </Source>
-        )} */}
-        {routeFeatures && (
-          <Source id="route" type="geojson" data={routeFeatures}>
-            <Layer {...routeLayerStyle} />
-            <Layer {...routeStopLayerStyle} />
+            <Layer {...(layerStyle as any)} />
           </Source>
         )}
+        {routeFeatures && (
+          <Source id="route" type="geojson" data={routeFeatures}>
+            <Layer {...(routeLayerStyle as any)} />
+            <Layer {...(routeStopLayerStyle as any)} />
+          </Source>
+        )}
+        {accidentPreventionLayerData &&
+          accidentPreventionLayerData.features.length > 0 && (
+            <Source
+              id="accident"
+              type="geojson"
+              data={accidentPreventionLayerData}
+            >
+              <Layer {...(accidentPreventionLayerStyle as any)} />
+            </Source>
+          )}
       </Map>
       <div
         {...handlers}
@@ -378,7 +574,7 @@ export default function Page2() {
         id="dropbox"
       >
         <button
-          onClick={() => viewNavigate("/Page4")}
+          onClick={() => viewNavigate("/directions")}
           className="absolute -top-16 right-2 bg-[#1da1f2] p-3 rounded-lg"
         >
           <div className="bg-white h-6 w-6 rotate-45 p-1 rounded-md">
@@ -421,7 +617,20 @@ export default function Page2() {
               />
             </div>
             <Divider dividerTitle="Suggestions" bgColour="bg-white" />
-            {/* <ListContainer /> */}
+            <ul role="list" className="divide-y divide-gray-200">
+              {predictions.map((item) => (
+                <li
+                  key={item?.place_id || item.description}
+                  className="px-4 py-4 sm:px-6"
+                >
+                  <Suggestion
+                    mainText={item.structured_formatting.main_text}
+                    subText={item.structured_formatting.secondary_text}
+                    handleGoToPrediction={() => void 0}
+                  />
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>

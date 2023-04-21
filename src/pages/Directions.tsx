@@ -5,6 +5,7 @@ import React, {
   useState,
   useTransition,
 } from "react";
+
 import { BiWalk, BiBus, BiCar, IoBicycle } from "react-icons/all";
 
 import { classNames } from "../utils";
@@ -28,7 +29,7 @@ import {
   directionsResponseArrayAtom,
   navigationDataAtom,
 } from "../recoil/atoms";
-import TransportRoutes from "../organisms/TransportRoute";
+import TransportRoutes from "../organisms/TranportRoute";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 
 const TransportBadgeColorMap = {
@@ -39,9 +40,7 @@ const TransportBadgeColorMap = {
 };
 
 const SOCKET_URL = "ws://localhost:8080/directions/1234";
-export default function SearchPlace() {
-  const [isPending, startTransition] = useTransition();
-
+export default function Directions() {
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
     SOCKET_URL,
     {
@@ -269,10 +268,13 @@ export default function SearchPlace() {
         ></div>
       </div>
 
-      <TransportRoutes />
-      {/* <div className="h-full flex bg-gray-200 justify-center items-center">
-        <Logo className="h-72 w-72 -translate-y-16" />
-      </div> */}
+      {selectedTransport ? (
+        <TransportRoutes selectedTransport={selectedTransport} />
+      ) : (
+        <div className="h-full flex bg-gray-200 justify-center items-center">
+          <Logo className="h-72 w-72 -translate-y-16" />
+        </div>
+      )}
     </div>
   );
 }
